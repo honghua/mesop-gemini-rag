@@ -1,20 +1,20 @@
+import os
+from dotenv import load_dotenv
 import gradio as gr
 import google.generativeai as genai
 from PIL import Image
-import io
-import os
-from dotenv import load_dotenv
 
 # Load environment variables from the .env file
 load_dotenv()
 
-# Configure your Google API key
-# GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY"
+# Retrieve the Google API key from the environment
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
-def preprocess_stop_sequences(stop_sequences):
-    # Implement any preprocessing needed for stop sequences
-    return stop_sequences
+# Define default values for generation parameters
+DEFAULT_TEMPERATURE = 0.7
+DEFAULT_MAX_OUTPUT_TOKENS = 512
+DEFAULT_TOP_K = 40
+DEFAULT_TOP_P = 0.95
 
 def preprocess_image(image):
     # Implement any preprocessing needed for images
@@ -23,24 +23,18 @@ def preprocess_image(image):
 def chat(
     user_input,
     chatbot,
-    files,
-    google_key,
-    temperature=0.7,
-    max_output_tokens=512,
-    top_k=40,
-    top_p=0.95,
-    stop_sequences=None
+    files
 ):
     # Configure the API key
-    genai.configure(api_key=google_key if google_key else GOOGLE_API_KEY)
+    genai.configure(api_key=GOOGLE_API_KEY)
 
-    # Set up generation configuration
+    # Set up generation configuration with default values
     generation_config = genai.types.GenerationConfig(
-        temperature=temperature,
-        max_output_tokens=max_output_tokens,
-        stop_sequences=preprocess_stop_sequences(stop_sequences=stop_sequences) if stop_sequences else [],
-        top_k=top_k,
-        top_p=top_p
+        temperature=DEFAULT_TEMPERATURE,
+        max_output_tokens=DEFAULT_MAX_OUTPUT_TOKENS,
+        stop_sequences=[],  # No stop sequences by default
+        top_k=DEFAULT_TOP_K,
+        top_p=DEFAULT_TOP_P
     )
 
     # Prepare text and image prompts
@@ -48,7 +42,7 @@ def chat(
     image_prompt = [preprocess_image(Image.open(file).convert('RGB')) for file in files] if files else []
     
     # Select the appropriate model
-    model_name = 'gemini-pro-vision' if files else 'gemini-pro'
+    model_name = 'gemini-1.5-flash' if files else 'gemini-pro'
     model = genai.GenerativeModel(model_name)
 
     # Generate response from the model
@@ -70,21 +64,9 @@ def main():
     with gr.Blocks() as demo:
         gr.Markdown("# Chat with Google Gemini")
         
-        google_key_input = gr.Textbox(label="Google API Key", type="password")
-        
         chatbot = gr.Chatbot()
         user_input = gr.Textbox(label="Your Message")
         files_input = gr.File(file_count="multiple", label="Upload Images (Optional)")
-        
-        with gr.Row():
-            temperature_slider = gr.Slider(0.0, 1.0, value=0.7, label="Temperature")
-            max_tokens_slider = gr.Slider(1, 2048, value=512, step=1, label="Max Output Tokens")
-        
-        with gr.Row():
-            top_k_slider = gr.Slider(0, 100, value=40, step=1, label="Top K")
-            top_p_slider = gr.Slider(0.0, 1.0, value=0.95, label="Top P")
-        
-        stop_sequences_input = gr.Textbox(label="Stop Sequences (Comma-separated)", placeholder="e.g., 'Stop', 'End'")
         
         submit_button = gr.Button("Send")
         
@@ -96,13 +78,7 @@ def main():
             inputs=[
                 user_input,
                 chatbot,
-                files_input,
-                google_key_input,
-                temperature_slider,
-                max_tokens_slider,
-                top_k_slider,
-                top_p_slider,
-                stop_sequences_input
+                files_input
             ],
             outputs=chatbot
         )
@@ -110,8 +86,6 @@ def main():
         gr.Markdown("### Instructions")
         gr.Markdown("""
             - Enter your message and optionally upload images to get a response from the model.
-            - Adjust the parameters like Temperature, Max Output Tokens, Top K, and Top P to control the generation.
-            - Provide stop sequences if you want the model to stop generating upon encountering specific phrases.
         """)
         
     demo.launch()
