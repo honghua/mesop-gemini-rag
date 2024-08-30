@@ -1,7 +1,4 @@
-import time
-from PIL import Image
 import mesop as me
-import base64
 
 from model import Model
 from uploader import Uploader
