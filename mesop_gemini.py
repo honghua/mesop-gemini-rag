@@ -1,12 +1,21 @@
 import mesop as me
 
 from model import Model
-from uploader import Uploader
+from ui import UI
+from dataclasses import dataclass
+
+
+@dataclass
+class Conversation:
+    input: str
+    output: str=""
+
 
 @me.stateclass
 class State:
     input: str
     output: str
+    history: list[Conversation]
     in_progress: bool
 
 @me.page(path="/chatbot")
@@ -27,45 +36,16 @@ def page():
                 ),
             )
         ):
-            header_text()
-            Uploader.upload()
+            UI.header_text()
+            UI.upload()
             chat_input()
             output()
-    footer()
-
-def header_text():
-    with me.box(
-        style=me.Style(
-            padding=me.Padding(
-                top=64,
-                bottom=36,
-            ),
-        )
-    ):
-        me.text(
-            "Mesop Chatbot",
-            style=me.Style(
-                font_size=36,
-                font_weight=700,
-                background="linear-gradient(90deg, #4285F4, #AA5CDB, #DB4437) text",
-                color="transparent",
-            ),
-        )
+    UI.footer()
 
 def chat_input():
     state = me.state(State)
     with me.box(
-        style=me.Style(
-            padding=me.Padding.all(8),
-            background="white",
-            display="flex",
-            width="100%",
-            border=me.Border.all(
-                me.BorderSide(width=0, style="solid", color="black")
-            ),
-            border_radius=12,
-            box_shadow="0 10px 20px #0000000a, 0 2px 6px #0000000a, 0 0 1px #0000000a",
-        )
+        style=UI.chat_style()
     ):
         with me.box(
             style=me.Style(
@@ -109,6 +89,7 @@ def click_send(e: me.ClickEvent):
     for chunk in Model.call_api(input_text):
         state.output += chunk
         yield
+    state.history.append(Conversation(input_text, state.output))
     state.in_progress = False
     yield
 
@@ -124,22 +105,9 @@ def output():
             )
         ):
             if state.output:
-                me.markdown(state.output)
+                for converation in state.history:
+                    me.markdown(converation.input)
+                    me.markdown(converation.output)
             if state.in_progress:
                 with me.box(style=me.Style(margin=me.Margin(top=16))):
                     me.progress_spinner()
-
-def footer():
-    with me.box(
-        style=me.Style(
-            position="sticky",
-            bottom=0,
-            padding=me.Padding.symmetric(vertical=16, horizontal=16),
-            width="100%",
-            background="#F0F4F9",
-            font_size=14,
-        )
-    ):
-        me.html(
-            "Made with <a href='https://google.github.io/mesop/'>Mesop</a>",
-        )
