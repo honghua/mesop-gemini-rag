@@ -2,21 +2,25 @@ import os
 import shutil
 from pathlib import Path
 from typing import List
-import mesop as me
 
+import mesop as me
+from embeddings import Embeddings
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
+from retriever import Retriever
 
-from embeddings import Embeddings
 
 class DataStoreGenerator:
     CHROMA_PATH = "chroma"
     DATA_PATH = Path("data/uploaded_docs")
+    retriever = None
 
     @classmethod
     def process_files(cls, files: List[me.UploadedFile], overwrite: bool = False, chunk_size: int = 300, chunk_overlap: int = 100):
         if not overwrite and os.path.exists(cls.CHROMA_PATH):
+            db = Chroma(persist_directory=cls.CHROMA_PATH, embedding_function=Embeddings.get_embeddings())
+            cls.retriever = Retriever(db)
             print(f"Data store already exists at {cls.CHROMA_PATH}. Use overwrite=True to recreate.")
             return
 
@@ -30,6 +34,7 @@ class DataStoreGenerator:
             documents.append(doc)
         chunks = cls._split_text(documents, chunk_size, chunk_overlap)
         cls._save_to_chroma(chunks, overwrite)
+
     
         
     @classmethod
@@ -81,8 +86,9 @@ class DataStoreGenerator:
         )
         db.persist()
         print(f"Saved {len(chunks)} chunks to {cls.CHROMA_PATH}.")
+        cls.retriever = Retriever(db)
 
 
 if __name__ == "__main__":
     data_path = Path("data")
-    DataStoreGenerator.process_files(data_path, overwrite=True)
+    DataStoreGenerator.process_files(data_path, overwrite=False)

@@ -1,15 +1,13 @@
 import mesop as me
 
-from model import Model
-from ui import UI
 from dataclasses import dataclass
-
+from datastore import DataStoreGenerator
+from ui import UI
 
 @dataclass
 class Conversation:
     input: str
     output: str=""
-
 
 @me.stateclass
 class State:
@@ -84,12 +82,8 @@ def click_send(e: me.ClickEvent):
     input_text = state.input
     state.input = ""
     state.output = ""  # Clear previous output
-    yield
 
-    for chunk in Model.call_api(input_text):
-        state.output += chunk
-        yield
-    state.history.append(Conversation(input_text, state.output))
+    state.output = DataStoreGenerator.retriever.process_query(input_text)
     state.in_progress = False
     yield
 
@@ -105,9 +99,7 @@ def output():
             )
         ):
             if state.output:
-                for converation in state.history:
-                    me.markdown(converation.input)
-                    me.markdown(converation.output)
+                me.markdown(state.output)
             if state.in_progress:
                 with me.box(style=me.Style(margin=me.Margin(top=16))):
                     me.progress_spinner()
