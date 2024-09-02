@@ -43,22 +43,6 @@ class UI:
             )
         
     @staticmethod
-    def chat_style():
-        style=me.Style(
-            padding=me.Padding.all(8),
-            background="white",
-            display="flex",
-            width="100%",
-            border=me.Border.all(
-                me.BorderSide(width=0, style="solid", color="black")
-            ),
-            border_radius=12,
-            box_shadow="0 10px 20px #0000000a, 0 2px 6px #0000000a, 0 0 1px #0000000a",
-        )
-        return style
-
-        
-    @staticmethod
     def upload():
         with me.box(style=me.Style(padding=me.Padding.all(15))):
             me.uploader(
